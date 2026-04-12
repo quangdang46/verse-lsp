@@ -4,3 +4,6 @@ verse_extracted
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# Build artifacts
+target/
