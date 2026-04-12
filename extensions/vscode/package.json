@@ -1,0 +1,41 @@
+{
+  "name": "verse-language",
+  "displayName": "Verse Language",
+  "description": "Language support for Verse (UEFN) via LSP",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:verse"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "verse",
+        "extensions": [".verse"],
+        "aliases": ["Verse"]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "verse",
+        "scopeName": "source.verse"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@vscode/test-electron": "^2.3.0",
+    "typescript": "^5.0.0"
+  }
+}

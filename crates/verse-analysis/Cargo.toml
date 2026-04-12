@@ -1,0 +1,12 @@
+[package]
+name = "verse-analysis"
+version = "0.1.0"
+edition = "2021"
+description = "Verse LSP analysis: completion, hover, definition"
+
+[dependencies]
+verse-parser = { path = "../verse-parser" }
+rustc-hash = "2"
+regex = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync"] }

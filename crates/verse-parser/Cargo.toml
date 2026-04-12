@@ -1,0 +1,13 @@
+[package]
+name = "verse-parser"
+version = "0.1.0"
+edition = "2021"
+description = "Verse digest file parser and symbol database"
+
+[dependencies]
+regex = "1"
+thiserror = "2"
+rustc-hash = "2"
+
+[dev-dependencies]
+pretty_assertions = "1"
