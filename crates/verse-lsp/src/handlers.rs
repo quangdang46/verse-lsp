@@ -3,6 +3,7 @@ use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
 use verse_analysis::definition::find_definition_at;
 use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
+use verse_analysis::get_word_at_cursor;
 use verse_analysis::WorkspaceSymbol;
 use verse_analysis::{
     complete_global, complete_member, complete_module_path, find_type_in_buffer, guess_type,
@@ -122,8 +123,9 @@ impl VerseServer {
     }
 
     pub async fn handle_hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let uri = &params.text_document_position_params.text_document.uri;
         let docs = self.documents.read().await;
-        let doc = match docs.get(&params.text_document_position_params.text_document.uri) {
+        let doc = match docs.get(uri) {
             Some(d) => d,
             None => return Ok(None),
         };
@@ -136,8 +138,26 @@ impl VerseServer {
         if line_num as usize >= lines.len() {
             return Ok(None);
         }
-
         let line_text = lines[line_num as usize];
+
+        {
+            let ws_symbols = self.workspace_symbols.read().await;
+            if let Some(ws_syms) = ws_symbols.get(uri) {
+                let converted: Vec<verse_parser::Symbol> =
+                    ws_syms.iter().map(|s| s.to_parser_symbol()).collect();
+                let refs: Vec<&verse_parser::Symbol> = converted.iter().collect();
+                if let Some(sym) = find_symbol_at_cursor(line_text, line_num, col_num, &refs) {
+                    let markdown = format_hover_markdown(sym);
+                    return Ok(Some(Hover {
+                        contents: HoverContents::Markup(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: markdown,
+                        }),
+                        range: None,
+                    }));
+                }
+            }
+        }
 
         let symbols: Vec<_> = self.db.get_public_symbols();
         if let Some(symbol) = find_symbol_at_cursor(line_text, line_num, col_num, &symbols) {
@@ -158,8 +178,9 @@ impl VerseServer {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
+        let uri = &params.text_document_position_params.text_document.uri;
         let docs = self.documents.read().await;
-        let doc = match docs.get(&params.text_document_position_params.text_document.uri) {
+        let doc = match docs.get(uri) {
             Some(d) => d,
             None => return Ok(None),
         };
@@ -172,25 +193,43 @@ impl VerseServer {
         if line_num as usize >= lines.len() {
             return Ok(None);
         }
-
         let line_text = lines[line_num as usize];
+
+        let word = match get_word_at_cursor(line_text, col_num as usize) {
+            Some((w, _, _)) => w.to_string(),
+            None => return Ok(None),
+        };
+        let name_len = word.len() as u32;
+        let origin_range = Range::new(position, Position::new(line_num, col_num + name_len));
+
+        {
+            let ws_symbols = self.workspace_symbols.read().await;
+            for (target_uri, syms) in ws_symbols.iter() {
+                if let Some(sym) = syms.iter().find(|s| s.name == word) {
+                    let target_line = sym.location.line.saturating_sub(1);
+                    let target_range = Range::new(
+                        Position::new(target_line, 0),
+                        Position::new(target_line, sym.name.len() as u32),
+                    );
+                    return Ok(Some(GotoDefinitionResponse::Link(vec![LocationLink {
+                        origin_selection_range: Some(origin_range),
+                        target_uri: target_uri.clone(),
+                        target_range,
+                        target_selection_range: target_range,
+                    }])));
+                }
+            }
+        }
+
         let symbols: Vec<_> = self.db.get_public_symbols();
-
         if let Some(def_result) = find_definition_at(line_text, line_num, col_num, &symbols) {
-            let uri = format!("digest://{}/{}", def_result.source, def_result.line);
-            let target_uri =
-                Uri::from_file_path(&uri).unwrap_or_else(|| Uri::from_file_path("").unwrap());
-
-            // Find the symbol to get its name length for proper range
-            let name_len = def_result.name.len() as u32;
-            let origin_range = Range::new(position, Position::new(line_num, col_num + name_len));
-
-            // Target is at the beginning of the definition line
+            let uri_str = format!("digest://{}/{}", def_result.source, def_result.line);
+            let target_uri = Uri::from_file_path(&uri_str)
+                .unwrap_or_else(|| Uri::from_file_path("").unwrap());
             let target_range = Range::new(
                 Position::new(def_result.line.saturating_sub(1), 0),
-                Position::new(def_result.line.saturating_sub(1), name_len),
+                Position::new(def_result.line.saturating_sub(1), def_result.name.len() as u32),
             );
-
             return Ok(Some(GotoDefinitionResponse::Link(vec![LocationLink {
                 origin_selection_range: Some(origin_range),
                 target_uri,
@@ -236,49 +275,35 @@ impl VerseServer {
         &self,
         params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
-        let docs = self.documents.read().await;
-        let doc = match docs.get(&params.text_document.uri) {
-            Some(d) => d,
-            None => return Ok(None),
+        let uri = &params.text_document.uri;
+        let ws_symbols = self.workspace_symbols.read().await;
+
+        let syms = match ws_symbols.get(uri) {
+            Some(s) => s,
+            None => return Ok(Some(DocumentSymbolResponse::Nested(vec![]))),
         };
 
-        let mut symbols = Vec::new();
-        let lines: Vec<&str> = doc.content.lines().collect();
-
-        for (idx, line) in lines.iter().enumerate() {
-            for symbol in self.db.get_public_symbols() {
-                if line.contains(&symbol.name) {
-                    symbols.push(DocumentSymbol {
-                        name: symbol.name.clone(),
-                        kind: symbol_kind_to_lsp_kind(&symbol.kind),
-                        range: Range {
-                            start: Position {
-                                line: idx as u32,
-                                character: 0,
-                            },
-                            end: Position {
-                                line: idx as u32,
-                                character: line.len() as u32,
-                            },
-                        },
-                        selection_range: Range {
-                            start: Position {
-                                line: idx as u32,
-                                character: 0,
-                            },
-                            end: Position {
-                                line: idx as u32,
-                                character: symbol.name.len() as u32,
-                            },
-                        },
-                        detail: None,
-                        children: None,
-                        tags: None,
-                        deprecated: None,
-                    });
+        let symbols: Vec<DocumentSymbol> = syms
+            .iter()
+            .map(|sym| {
+                let line = sym.location.line.saturating_sub(1);
+                let name_len = sym.name.len() as u32;
+                let range = Range {
+                    start: Position { line, character: 0 },
+                    end: Position { line, character: name_len },
+                };
+                DocumentSymbol {
+                    name: sym.name.clone(),
+                    kind: symbol_kind_to_lsp_kind(&sym.kind),
+                    range,
+                    selection_range: range,
+                    detail: None,
+                    children: None,
+                    tags: None,
+                    deprecated: None,
                 }
-            }
-        }
+            })
+            .collect();
 
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))
     }

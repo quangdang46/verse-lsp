@@ -2,7 +2,7 @@ use verse_parser::{Symbol, SymbolDetail};
 
 fn get_word_at_cursor(line: &str, column: usize) -> Option<(&str, usize, usize)> {
     let line_bytes = line.as_bytes();
-    if column > line_bytes.len() {
+    if column >= line_bytes.len() {
         return None;
     }
 
