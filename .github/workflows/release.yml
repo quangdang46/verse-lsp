@@ -64,44 +64,50 @@ jobs:
       - name: Install cross
         if: matrix.needs_cross == true
         run: cargo install cross
-      - name: Build
-        run: |
-          if [ "${{ matrix.needs_cross }}" == "true" ]; then
-            cross build --release --workspace --target ${{ matrix.target }}
-          else
-            cargo build --release --workspace
-          fi
-      - name: Package
+      - name: Build (cross)
+        run: cross build --release --workspace --target ${{ matrix.target }}
+        if: matrix.needs_cross == true
+
+      - name: Build (native)
+        run: cargo build --release --workspace
+        if: matrix.needs_cross != 'true'
+
+      - name: Package (tar.gz)
         shell: bash
         run: |
-          if [ "${{ matrix.needs_cross }}" == "true" ]; then
-            cd target/${{ matrix.target }}/release
-          else
-            cd target/release
-          fi
-          if [ "${{ matrix.archive }}" == "tar.gz" ]; then
-            mkdir -p release-staging
-            cp verse-lsp release-staging/
-            tar czf release.tar.gz -C release-staging .
-          else
-            mkdir -p release-staging
-            cp verse-lsp.exe release-staging/
-            cd release-staging
-            powershell -Command "Compress-Archive -Path * -DestinationPath ../release.zip"
-          fi
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          files: target/release/release.${{ matrix.archive }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-        if: matrix.needs_cross != 'true'
+          mkdir -p release-staging
+          cp target/${{ matrix.target }}/release/verse-lsp release-staging/
+          tar czf release.tar.gz -C release-staging .
+        if: matrix.archive == 'tar.gz' && matrix.needs_cross == 'true'
+
+      - name: Package (native tar.gz)
+        shell: bash
+        run: |
+          mkdir -p release-staging
+          cp target/release/verse-lsp release-staging/
+          tar czf release.tar.gz -C release-staging .
+        if: matrix.archive == 'tar.gz' && matrix.needs_cross != 'true'
+
+      - name: Package (zip)
+        run: |
+          mkdir release-staging
+          cp target/release/verse-lsp.exe release-staging/
+          Compress-Archive -Path release-staging/* -DestinationPath release.zip
+        if: matrix.archive == 'zip'
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: target/${{ matrix.target }}/release/release.${{ matrix.archive }}
+          files: ${{ matrix.needs_cross == 'true' && format('target/{0}/release/release.{1}', matrix.target, matrix.archive) || 'release.tar.gz' }}
           token: ${{ secrets.GITHUB_TOKEN }}
-        if: matrix.needs_cross == 'true'
+        if: matrix.archive == 'tar.gz'
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.needs_cross == 'true' && format('target/{0}/release/release.{1}', matrix.target, matrix.archive) || 'release.zip' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.archive == 'zip'
 
   release:
     needs: [vsix, build]
