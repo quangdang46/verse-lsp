@@ -24,12 +24,12 @@ jobs:
       - name: Build VSIX
         run: |
           cd extensions/vscode
-          npx vsce package --allow-missing-repository
+          npx vsce package --out verse-language-0.1.0.vsix --allow-missing-repository
 
       - name: Upload VSIX
         uses: softprops/action-gh-release@v2
         with:
-          files: extensions/vscode/verse-language.vsix
+          files: extensions/vscode/verse-language-0.1.0.vsix
           generate_release_notes: true
 
   build:
