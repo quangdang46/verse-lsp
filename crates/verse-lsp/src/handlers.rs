@@ -2,8 +2,8 @@ use crate::VerseServer;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
 use verse_analysis::definition::find_definition_at;
-use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
 use verse_analysis::get_word_at_cursor;
+use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
 use verse_analysis::WorkspaceSymbol;
 use verse_analysis::{
     complete_global, complete_member, complete_module_path, find_type_in_buffer, guess_type,
@@ -138,7 +138,6 @@ impl VerseServer {
         if line_num as usize >= lines.len() {
             return Ok(None);
         }
-        let line_text = lines[line_num as usize];
 
         {
             let ws_symbols = self.workspace_symbols.read().await;
@@ -146,7 +145,7 @@ impl VerseServer {
                 let converted: Vec<verse_parser::Symbol> =
                     ws_syms.iter().map(|s| s.to_parser_symbol()).collect();
                 let refs: Vec<&verse_parser::Symbol> = converted.iter().collect();
-                if let Some(sym) = find_symbol_at_cursor(line_text, line_num, col_num, &refs) {
+                if let Some(sym) = find_symbol_at_cursor(&doc.content, line_num, col_num, &refs) {
                     let markdown = format_hover_markdown(sym);
                     return Ok(Some(Hover {
                         contents: HoverContents::Markup(MarkupContent {
@@ -160,7 +159,7 @@ impl VerseServer {
         }
 
         let symbols: Vec<_> = self.db.get_public_symbols();
-        if let Some(symbol) = find_symbol_at_cursor(line_text, line_num, col_num, &symbols) {
+        if let Some(symbol) = find_symbol_at_cursor(&doc.content, line_num, col_num, &symbols) {
             let markdown = format_hover_markdown(symbol);
             return Ok(Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {
@@ -222,13 +221,16 @@ impl VerseServer {
         }
 
         let symbols: Vec<_> = self.db.get_public_symbols();
-        if let Some(def_result) = find_definition_at(line_text, line_num, col_num, &symbols) {
+        if let Some(def_result) = find_definition_at(&doc.content, line_num, col_num, &symbols) {
             let uri_str = format!("digest://{}/{}", def_result.source, def_result.line);
-            let target_uri = Uri::from_file_path(&uri_str)
-                .unwrap_or_else(|| Uri::from_file_path("").unwrap());
+            let target_uri =
+                Uri::from_file_path(&uri_str).unwrap_or_else(|| Uri::from_file_path("").unwrap());
             let target_range = Range::new(
                 Position::new(def_result.line.saturating_sub(1), 0),
-                Position::new(def_result.line.saturating_sub(1), def_result.name.len() as u32),
+                Position::new(
+                    def_result.line.saturating_sub(1),
+                    def_result.name.len() as u32,
+                ),
             );
             return Ok(Some(GotoDefinitionResponse::Link(vec![LocationLink {
                 origin_selection_range: Some(origin_range),
@@ -290,7 +292,10 @@ impl VerseServer {
                 let name_len = sym.name.len() as u32;
                 let range = Range {
                     start: Position { line, character: 0 },
-                    end: Position { line, character: name_len },
+                    end: Position {
+                        line,
+                        character: name_len,
+                    },
                 };
                 DocumentSymbol {
                     name: sym.name.clone(),
