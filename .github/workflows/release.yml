@@ -85,27 +85,27 @@ jobs:
         run: |
           mkdir -p release-staging
           cp target/release/verse-lsp release-staging/
-          tar czf release.tar.gz -C release-staging .
+          tar czf release-${{ matrix.target }}.tar.gz -C release-staging .
         if: matrix.archive == 'tar.gz' && matrix.needs_cross != 'true'
 
       - name: Package (zip)
         run: |
           mkdir release-staging
           cp target/release/verse-lsp.exe release-staging/
-          Compress-Archive -Path release-staging/* -DestinationPath release.zip
+          Compress-Archive -Path release-staging/* -DestinationPath release-${{ matrix.target }}.zip
         if: matrix.archive == 'zip'
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.needs_cross == 'true' && format('target/{0}/release/release.{1}', matrix.target, matrix.archive) || 'release.tar.gz' }}
+          files: ${{ matrix.needs_cross == 'true' && format('target/{0}/release/release.{1}', matrix.target, matrix.archive) || format('release-{0}.{1}', matrix.target, matrix.archive) }}
           token: ${{ secrets.GITHUB_TOKEN }}
         if: matrix.archive == 'tar.gz'
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.needs_cross == 'true' && format('target/{0}/release/release.{1}', matrix.target, matrix.archive) || 'release.zip' }}
+          files: ${{ matrix.needs_cross == 'true' && format('target/{0}/release/release.{1}', matrix.target, matrix.archive) || format('release-{0}.{1}', matrix.target, matrix.archive) }}
           token: ${{ secrets.GITHUB_TOKEN }}
         if: matrix.archive == 'zip'
 
