@@ -72,7 +72,7 @@ jobs:
                 cp "$f" release-staging/
               fi
             done
-            tar czf ../{{ matrix.target }}.tar.gz -C release-staging .
+            tar czf ../\${{ matrix.target }}.tar.gz -C release-staging .
           else
             mkdir -p release-staging
             for f in verse-lsp.exe; do
