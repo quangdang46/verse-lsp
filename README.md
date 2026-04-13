@@ -61,6 +61,12 @@ cargo build --release
 
 Download from the releases page for your platform.
 
+### Quick Install
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/quangdang46/verse-lsp/main/install.sh?$(date +%s)" | bash
+```
+
 ## Editor Configuration
 
 ### VS Code

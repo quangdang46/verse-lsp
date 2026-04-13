@@ -1,0 +1,85 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz
+            suffix: linux-x86_64
+          - target: aarch64-unknown-linux-musl
+            archive: tar.gz
+            suffix: linux-aarch64
+          - target: x86_64-apple-darwin
+            archive: tar.gz
+            suffix: macos-x86_64
+          - target: aarch64-apple-darwin
+            archive: tar.gz
+            suffix: macos-aarch64
+          - target: x86_64-pc-windows-msvc
+            archive: zip
+            suffix: windows-x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cross
+        run: cargo install cross
+      - name: Build
+        run: |
+          cross build --release --workspace --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [ "${{ matrix.archive }}" == "tar.gz" ]; then
+            # Find all binaries in the release dir
+            mkdir -p release-staging
+            for f in verse-lsp; do
+              if [ -f "$f" ]; then
+                cp "$f" release-staging/
+              fi
+            done
+            tar czf ../{{ matrix.target }}.tar.gz -C release-staging .
+          else
+            # Windows zip
+            mkdir -p release-staging
+            for f in verse-lsp.exe; do
+              if [ -f "$f" ]; then
+                cp "$f" release-staging/
+              fi
+            done
+            cd release-staging
+            powershell -Command "Compress-Archive -Path * -DestinationPath ../${{ matrix.target }}.zip"
+          fi
+      - name: SHA256
+        run: |
+          if [ "${{ matrix.archive }}" == "tar.gz" ]; then
+            sha256sum target/${{ matrix.target }}/release.tar.gz > target/${{ matrix.target }}.release.tar.gz.sha256
+          else
+            sha256sum target/${{ matrix.target }}.zip > target/${{ matrix.target }}.zip.sha256
+          fi
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/${{ matrix.target }}/release.${{ matrix.archive }}
+            target/${{ matrix.target }}/release.${{ matrix.archive }}.sha256
+          generate_release_notes: true
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
