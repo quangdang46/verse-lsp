@@ -37,13 +37,6 @@
         ]
       }
     ],
-    "themes": [
-      {
-        "label": "Verse-Dark",
-        "uiTheme": "vs-dark",
-        "path": "./themes/verse-dark.tmTheme.json"
-      }
-    ],
     "snippets": [
       {
         "language": "verse",
