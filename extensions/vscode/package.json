@@ -3,6 +3,7 @@
   "displayName": "Verse Language",
   "description": "Language support for Verse (UEFN) via LSP",
   "version": "0.1.0",
+  "publisher": "quangdang46",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -18,6 +19,13 @@
     "url": "https://github.com/quangdang46/verse-lsp"
   },
   "contributes": {
+    "grammars": [
+      {
+        "language": "verse",
+        "scopeName": "source.verse",
+        "path": "./syntaxes/verse.tmLanguage.json"
+      }
+    ],
     "languages": [
       {
         "id": "verse",
