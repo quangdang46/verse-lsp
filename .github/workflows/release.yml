@@ -69,43 +69,39 @@ jobs:
           if [ "${{ matrix.needs_cross }}" == "true" ]; then
             cross build --release --workspace --target ${{ matrix.target }}
           else
-            cargo build --release --workspace --target ${{ matrix.target }}
+            cargo build --release --workspace
           fi
       - name: Package
         shell: bash
         run: |
-          cd target/${{ matrix.target }}/release
+          if [ "${{ matrix.needs_cross }}" == "true" ]; then
+            cd target/${{ matrix.target }}/release
+          else
+            cd target/release
+          fi
           if [ "${{ matrix.archive }}" == "tar.gz" ]; then
             mkdir -p release-staging
-            for f in verse-lsp; do
-              if [ -f "$f" ]; then
-                cp "$f" release-staging/
-              fi
-            done
+            cp verse-lsp release-staging/
             tar czf release.tar.gz -C release-staging .
-            mv release.tar.gz ../release.tar.gz
           else
             mkdir -p release-staging
-            for f in verse-lsp.exe; do
-              if [ -f "$f" ]; then
-                cp "$f" release-staging/
-              fi
-            done
+            cp verse-lsp.exe release-staging/
             cd release-staging
             powershell -Command "Compress-Archive -Path * -DestinationPath ../release.zip"
-          fi
-      - name: SHA256
-        run: |
-          if [ "${{ matrix.archive }}" == "tar.gz" ]; then
-            sha256sum target/${{ matrix.target }}/release.tar.gz > target/${{ matrix.target }}/release.sha256
-          else
-            sha256sum target/${{ matrix.target }}/release.zip > target/${{ matrix.target }}/release.sha256
           fi
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: target/${{ matrix.target }}/release.${{ matrix.archive }}
+          files: target/release/release.${{ matrix.archive }}
           token: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.needs_cross != 'true'
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/${{ matrix.target }}/release/release.${{ matrix.archive }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.needs_cross == 'true'
 
   release:
     needs: [vsix, build]
