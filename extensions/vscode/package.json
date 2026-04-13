@@ -17,8 +17,12 @@
     "languages": [
       {
         "id": "verse",
-        "extensions": [".verse"],
-        "aliases": ["Verse"]
+        "extensions": [
+          ".verse"
+        ],
+        "aliases": [
+          "Verse"
+        ]
       }
     ],
     "grammars": [
@@ -31,11 +35,17 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && npx vsce package -o ../"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
     "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^3.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/vscode": "^1.115.0",
+    "vscode-languageclient": "^9.0.0"
   }
 }

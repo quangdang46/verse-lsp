@@ -6,6 +6,29 @@ on:
 permissions:
   contents: write
 jobs:
+  vsix:
+    name: Build VSIX
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: extensions/vscode/package-lock.json
+      - name: Install dependencies
+        run: cd extensions/vscode && npm install
+      - name: Build VSIX
+        run: |
+          cd extensions/vscode
+          npx vsce package --out ../verse-language.vsix --allow-missing-repository
+      - name: Upload VSIX
+        uses: softprops/action-gh-release@v2
+        with:
+          files: verse-language.vsix
+          generate_release_notes: true
+
   build:
     name: Build (${{ matrix.target }})
     runs-on: ubuntu-latest
@@ -39,7 +62,6 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           if [ "${{ matrix.archive }}" == "tar.gz" ]; then
-            # Find all binaries in the release dir
             mkdir -p release-staging
             for f in verse-lsp; do
               if [ -f "$f" ]; then
@@ -48,7 +70,6 @@ jobs:
             done
             tar czf ../{{ matrix.target }}.tar.gz -C release-staging .
           else
-            # Windows zip
             mkdir -p release-staging
             for f in verse-lsp.exe; do
               if [ -f "$f" ]; then
@@ -71,10 +92,9 @@ jobs:
           files: |
             target/${{ matrix.target }}/release.${{ matrix.archive }}
             target/${{ matrix.target }}/release.${{ matrix.archive }}.sha256
-          generate_release_notes: true
 
   release:
-    needs: build
+    needs: [vsix, build]
     runs-on: ubuntu-latest
     steps:
       - name: Create Release

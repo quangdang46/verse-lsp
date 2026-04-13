@@ -7,9 +7,7 @@ function startClient() {
     const serverOptions: ServerOptions = {
         command: 'verse-lsp',
         args: [],
-        options: {
-            stdio: 'pipe'
-        }
+        transport: TransportKind.stdio
     };
 
     const clientOptions: LanguageClientOptions = {

@@ -7,3 +7,8 @@ verse_extracted
 
 # Build artifacts
 target/
+
+# VS Code extension
+extensions/vscode/node_modules/
+extensions/vscode/out/
+*.vsix
