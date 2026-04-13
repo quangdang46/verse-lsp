@@ -4,6 +4,53 @@ use tower_lsp_server::ls_types::*;
 use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
 use verse_analysis::{complete_global, complete_member, complete_module_path, guess_type};
 use verse_analysis::definition::find_definition_at;
+use verse_analysis::WorkspaceSymbol;
+
+fn ws_symbol_to_symbol_info(
+    sym: &WorkspaceSymbol,
+    uri: &tower_lsp_server::ls_types::Uri,
+) -> SymbolInformation {
+    SymbolInformation {
+        name: sym.name.clone(),
+        kind: symbol_kind_to_lsp_kind(&sym.kind),
+        location: Location {
+            uri: uri.clone(),
+            range: Range {
+                start: Position {
+                    line: sym.location.line.saturating_sub(1),
+                    character: 0,
+                },
+                end: Position {
+                    line: sym.location.line.saturating_sub(1),
+                    character: sym.name.len() as u32,
+                },
+            },
+        },
+        container_name: Some("workspace".to_string()),
+        tags: None,
+        deprecated: Some(false),
+    }
+}
+
+fn symbol_to_symbol_info(
+    sym: &verse_parser::Symbol,
+    module_name: &str,
+) -> SymbolInformation {
+    let uri = format!("digest://{}/{}", module_name, sym.location.line);
+    let loc_uri = Uri::from_file_path(&uri)
+        .unwrap_or_else(|| Uri::from_file_path("/workspace/fallback").unwrap());
+    SymbolInformation {
+        name: sym.name.clone(),
+        kind: symbol_kind_to_lsp_kind(&sym.kind),
+        location: Location {
+            uri: loc_uri,
+            range: Range::default(),
+        },
+        container_name: Some(module_name.to_string()),
+        tags: None,
+        deprecated: Some(false),
+    }
+}
 
 impl VerseServer {
     pub async fn handle_completion(
@@ -152,19 +199,16 @@ impl VerseServer {
         for module in self.db.modules.values() {
             for symbol in &module.symbols {
                 if symbol.name.to_lowercase().contains(&query) {
-                    let uri = format!("digest://{}/{}", module.name, symbol.location.line);
-                    results.push(SymbolInformation {
-                        name: symbol.name.clone(),
-                        kind: symbol_kind_to_lsp_kind(&symbol.kind),
-                        location: Location {
-                            uri: Uri::from_file_path(&uri)
-                                .unwrap_or_else(|| Uri::from_file_path("").unwrap()),
-                            range: Range::default(),
-                        },
-                        container_name: Some(module.name.clone()),
-                        tags: None,
-                        deprecated: Some(false),
-                    });
+                    results.push(symbol_to_symbol_info(symbol, &module.name));
+                }
+            }
+        }
+
+        let ws_symbols = self.workspace_symbols.read().await;
+        for (uri, symbols) in ws_symbols.iter() {
+            for sym in symbols {
+                if sym.name.to_lowercase().contains(&query) {
+                    results.push(ws_symbol_to_symbol_info(sym, uri));
                 }
             }
         }

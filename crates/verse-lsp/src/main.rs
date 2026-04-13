@@ -7,12 +7,14 @@ use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use verse_analysis::documents::Document;
+use verse_analysis::workspace::{parse_verse_symbols, WorkspaceSymbol};
 use verse_parser::SymbolDb;
 
 pub struct VerseServer {
     client: Client,
     db: Arc<SymbolDb>,
     documents: Arc<RwLock<HashMap<Uri, Document>>>,
+    workspace_symbols: Arc<RwLock<HashMap<Uri, Vec<WorkspaceSymbol>>>>,
 }
 
 impl LanguageServer for VerseServer {
@@ -52,14 +54,24 @@ impl LanguageServer for VerseServer {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
+        let uri = params.text_document.uri.clone();
+        let text = params.text_document.text.clone();
+
+        let symbols = parse_verse_symbols(&text);
+        {
+            let mut ws_symbols = self.workspace_symbols.write().await;
+            ws_symbols.insert(uri.clone(), symbols);
+        }
+
         let mut docs = self.documents.write().await;
-        let doc = Document::new(params.text_document.version, params.text_document.text);
-        docs.insert(params.text_document.uri, doc);
+        let doc = Document::new(params.text_document.version, text);
+        docs.insert(uri, doc);
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
+        let uri = params.text_document.uri.clone();
         let mut docs = self.documents.write().await;
-        if let Some(doc) = docs.get_mut(&params.text_document.uri) {
+        if let Some(doc) = docs.get_mut(&uri) {
             doc.version = params.text_document.version;
             for change in params.content_changes {
                 if let Some(range) = change.range {
@@ -72,12 +84,18 @@ impl LanguageServer for VerseServer {
                     doc.content = change.text;
                 }
             }
+            let symbols = parse_verse_symbols(&doc.content);
+            drop(docs);
+            let mut ws_symbols = self.workspace_symbols.write().await;
+            ws_symbols.insert(uri, symbols);
         }
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let mut docs = self.documents.write().await;
         docs.remove(&params.text_document.uri);
+        let mut ws_symbols = self.workspace_symbols.write().await;
+        ws_symbols.remove(&params.text_document.uri);
     }
 
     async fn did_save(&self, _params: DidSaveTextDocumentParams) {}
@@ -153,11 +171,13 @@ async fn main() {
 
     let db = Arc::new(SymbolDb::load_bundled());
     let documents = Arc::new(RwLock::new(HashMap::new()));
+    let workspace_symbols = Arc::new(RwLock::new(HashMap::new()));
 
     let (service, socket) = LspService::new(|client| VerseServer {
         client,
         db,
         documents,
+        workspace_symbols,
     });
 
     Server::new(stdin, stdout, socket).serve(service).await;
