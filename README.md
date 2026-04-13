@@ -95,6 +95,36 @@ name = "verse"
 language-server = { command = "verse-lsp" }
 ```
 
+### OpenCode
+
+Add to your `opencode.json` (or `.opencode.json` in your project):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": {
+    "verse": {
+      "command": ["verse-lsp", "--stdio"],
+      "extensions": [".verse", ".versetest", ".vson"]
+    }
+  }
+}
+```
+
+Or for global setup, add to `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": {
+    "verse": {
+      "command": ["/path/to/verse-lsp", "--stdio"],
+      "extensions": [".verse"]
+    }
+  }
+}
+```
+
 ## Architecture
 
 ```
