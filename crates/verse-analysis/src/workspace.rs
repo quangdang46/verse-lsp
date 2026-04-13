@@ -136,3 +136,19 @@ pub fn parse_verse_symbols(text: &str) -> Vec<WorkspaceSymbol> {
 
     symbols
 }
+
+pub fn find_type_in_buffer(document_text: &str, var_name: &str) -> Option<String> {
+    let var_re = Regex::new(
+        r"(?m)^(\s*)var\s+(<[^>]+>\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^=]+)(?:\s*=\s*(.+))?$",
+    )
+    .ok()?;
+
+    for cap in var_re.captures_iter(document_text) {
+        let name = cap.get(3)?.as_str();
+        if name == var_name {
+            let type_expr = cap.get(4)?.as_str().trim().to_string();
+            return Some(type_expr);
+        }
+    }
+    None
+}

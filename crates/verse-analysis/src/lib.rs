@@ -6,4 +6,4 @@ pub mod workspace;
 
 pub use completion::*;
 pub use documents::{Document, DocumentMap, Position, Range, Url};
-pub use workspace::{parse_verse_symbols, WorkspaceSymbol};
+pub use workspace::{find_type_in_buffer, parse_verse_symbols, WorkspaceSymbol};

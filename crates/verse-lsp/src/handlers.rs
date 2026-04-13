@@ -2,7 +2,7 @@ use crate::VerseServer;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
 use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
-use verse_analysis::{complete_global, complete_member, complete_module_path, guess_type};
+use verse_analysis::{complete_global, complete_member, complete_module_path, find_type_in_buffer, guess_type, resolve_type_canonical};
 use verse_analysis::definition::find_definition_at;
 use verse_analysis::WorkspaceSymbol;
 
@@ -80,7 +80,18 @@ impl VerseServer {
         };
 
         let items = if let Some(prefix) = before_cursor.strip_suffix('.') {
-            if let Some(type_hint) = guess_type(prefix) {
+            if let Some(type_expr) = find_type_in_buffer(&doc.content, prefix) {
+                if let Some(canonical) = resolve_type_canonical(&self.db, &type_expr) {
+                    let member_items = complete_member(&self.db, &canonical);
+                    if !member_items.is_empty() {
+                        member_items
+                    } else {
+                        complete_global(&self.db)
+                    }
+                } else {
+                    complete_global(&self.db)
+                }
+            } else if let Some(type_hint) = guess_type(prefix) {
                 complete_member(&self.db, &type_hint)
             } else {
                 complete_global(&self.db)

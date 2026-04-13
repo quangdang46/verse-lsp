@@ -82,6 +82,16 @@ pub fn guess_type(identifier: &str) -> Option<String> {
     }
 }
 
+pub fn resolve_type_canonical(db: &SymbolDb, type_expr: &str) -> Option<String> {
+    let base_type = type_expr.split('<').next().unwrap_or(type_expr).trim();
+
+    if db.find_class(base_type).is_some() {
+        Some(base_type.to_lowercase())
+    } else {
+        Some(type_expr.trim().to_lowercase())
+    }
+}
+
 pub struct CompletionItem {
     pub label: String,
     pub kind: Option<CompletionItemKind>,
