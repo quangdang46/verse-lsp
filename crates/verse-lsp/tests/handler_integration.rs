@@ -193,9 +193,7 @@ MyEnum := enum:
 
 #[test]
 fn test_workspace_symbols_function_and_type_alias_parsing() {
-    // Both lines need proper leading whitespace for the regex patterns:
-    // func_re uses (?m)^\s+ which requires whitespace at line start.
-    // The newline is literal (\n), not a \<newline> continuation.
+    // func_re requires whitespace at line start - literal \n not \<newline>
     let source = "    MyFunc(Arg:int):void = external {}\n    MyType := type {int}\n";
     let symbols = parse_verse_symbols(source);
     let kinds: Vec<_> = symbols.iter().map(|s| s.kind.clone()).collect();
@@ -207,4 +205,52 @@ fn test_workspace_symbols_function_and_type_alias_parsing() {
         kinds.contains(&SymbolKind::TypeAlias),
         "Should have TypeAlias"
     );
+}
+
+#[test]
+fn test_hover_finds_symbol_on_line_1_multiline_doc() {
+    let doc_content = "class MyClass:\n    var x:int = 123";
+    let line_num = 1u32;
+    let col = 9u32;
+
+    let ws_symbols = parse_verse_symbols(doc_content);
+    let converted: Vec<verse_parser::Symbol> =
+        ws_symbols.iter().map(|s| s.to_parser_symbol()).collect();
+    let refs: Vec<&verse_parser::Symbol> = converted.iter().collect();
+
+    let found = find_symbol_at_cursor(doc_content, line_num, col, &refs);
+    assert!(found.is_some(), "Should find symbol 'x' on line 1");
+    assert_eq!(found.unwrap().name, "x");
+}
+
+#[test]
+fn test_hover_finds_symbol_on_line_2_multiline_doc() {
+    let doc_content = "class MyClass:\n    var x:int = 123\n    var y:string = \"hello\"";
+    let line_num = 2u32;
+    let col = 9u32;
+
+    let ws_symbols = parse_verse_symbols(doc_content);
+    let converted: Vec<verse_parser::Symbol> =
+        ws_symbols.iter().map(|s| s.to_parser_symbol()).collect();
+    let refs: Vec<&verse_parser::Symbol> = converted.iter().collect();
+
+    let found = find_symbol_at_cursor(doc_content, line_num, col, &refs);
+    assert!(found.is_some(), "Should find symbol 'y' on line 2");
+    assert_eq!(found.unwrap().name, "y");
+}
+
+#[test]
+fn test_goto_definition_finds_symbol_on_line_2() {
+    let doc_content = "class MyClass:\n    var x:int = 123\n    var z:int = 456";
+    let line_num = 2u32;
+    let col = 9u32;
+
+    let ws_symbols = parse_verse_symbols(doc_content);
+    let converted: Vec<verse_parser::Symbol> =
+        ws_symbols.iter().map(|s| s.to_parser_symbol()).collect();
+    let refs: Vec<&verse_parser::Symbol> = converted.iter().collect();
+
+    let result = find_definition_at(doc_content, line_num, col, &refs);
+    assert!(result.is_some(), "Should find definition of 'z' on line 2");
+    assert_eq!(result.unwrap().name, "z");
 }
