@@ -31,10 +31,12 @@ fn ws_symbol_to_symbol_info(
         },
         container_name: Some("workspace".to_string()),
         tags: None,
-        deprecated: Some(false),
+        #[allow(deprecated)]
+        deprecated: None,
     }
 }
 
+#[allow(deprecated)]
 fn symbol_to_symbol_info(sym: &verse_parser::Symbol, module_name: &str) -> SymbolInformation {
     let uri = format!("digest://{}/{}", module_name, sym.location.line);
     let loc_uri = Uri::from_file_path(&uri)
@@ -48,7 +50,8 @@ fn symbol_to_symbol_info(sym: &verse_parser::Symbol, module_name: &str) -> Symbo
         },
         container_name: Some(module_name.to_string()),
         tags: None,
-        deprecated: Some(false),
+        #[allow(deprecated)]
+        deprecated: None,
     }
 }
 
@@ -271,7 +274,7 @@ impl VerseServer {
                         detail: None,
                         children: None,
                         tags: None,
-                        deprecated: Some(false),
+                        deprecated: None,
                     });
                 }
             }

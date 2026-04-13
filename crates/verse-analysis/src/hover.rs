@@ -53,13 +53,7 @@ pub fn find_symbol_at_cursor<'a>(
 
     let (word, _, _) = get_word_at_cursor(current_line, col)?;
 
-    for symbol in symbols {
-        if symbol.name == word {
-            return Some(symbol);
-        }
-    }
-
-    None
+    symbols.iter().find(|symbol| symbol.name == word).copied()
 }
 
 pub fn format_hover_markdown(symbol: &Symbol) -> String {
