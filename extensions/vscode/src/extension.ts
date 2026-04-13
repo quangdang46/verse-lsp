@@ -4,8 +4,11 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 let client: LanguageClient | undefined;
 
 function startClient() {
+    const config = vscode.workspace.getConfiguration('verse-language');
+    const serverPath = config.get<string>('serverPath', 'verse-lsp');
+    
     const serverOptions: ServerOptions = {
-        command: 'verse-lsp',
+        command: serverPath,
         args: [],
         transport: TransportKind.stdio
     };

@@ -13,6 +13,10 @@
     "onLanguage:verse"
   ],
   "main": "./out/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/quangdang46/verse-lsp"
+  },
   "contributes": {
     "languages": [
       {
@@ -25,12 +29,16 @@
         ]
       }
     ],
-    "grammars": [
-      {
-        "language": "verse",
-        "scopeName": "source.verse"
+    "configuration": {
+      "title": "Verse Language",
+      "properties": {
+        "verse-language.serverPath": {
+          "type": "string",
+          "default": "verse-lsp",
+          "description": "Path to the verse-lsp binary"
+        }
       }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
