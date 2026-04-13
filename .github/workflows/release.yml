@@ -33,34 +33,44 @@ jobs:
 
   build:
     name: Build (${{ matrix.target }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
             archive: tar.gz
-            suffix: linux-x86_64
+            needs_cross: true
           - target: aarch64-unknown-linux-musl
+            runner: ubuntu-latest
             archive: tar.gz
-            suffix: linux-aarch64
+            needs_cross: true
           - target: x86_64-apple-darwin
+            runner: macos-latest
             archive: tar.gz
-            suffix: macos-x86_64
+            needs_cross: false
           - target: aarch64-apple-darwin
+            runner: macos-latest
             archive: tar.gz
-            suffix: macos-aarch64
+            needs_cross: false
           - target: x86_64-pc-windows-msvc
+            runner: windows-latest
             archive: zip
-            suffix: windows-x86_64
+            needs_cross: false
     steps:
       - uses: actions/checkout@v4
       - name: Install cross
+        if: matrix.needs_cross == true
         run: cargo install cross
       - name: Build
         run: |
-          cross build --release --workspace --target ${{ matrix.target }}
+          if [ "${{ matrix.needs_cross }}" == "true" ]; then
+            cross build --release --workspace --target ${{ matrix.target }}
+          else
+            cargo build --release --workspace --target ${{ matrix.target }}
+          fi
       - name: Package
         shell: bash
         run: |
@@ -72,7 +82,8 @@ jobs:
                 cp "$f" release-staging/
               fi
             done
-            tar czf ../\${{ matrix.target }}.tar.gz -C release-staging .
+            tar czf release.tar.gz -C release-staging .
+            mv release.tar.gz ../release.tar.gz
           else
             mkdir -p release-staging
             for f in verse-lsp.exe; do
@@ -81,21 +92,20 @@ jobs:
               fi
             done
             cd release-staging
-            powershell -Command "Compress-Archive -Path * -DestinationPath ../${{ matrix.target }}.zip"
+            powershell -Command "Compress-Archive -Path * -DestinationPath ../release.zip"
           fi
       - name: SHA256
         run: |
           if [ "${{ matrix.archive }}" == "tar.gz" ]; then
-            sha256sum target/${{ matrix.target }}/release.tar.gz > target/${{ matrix.target }}.release.tar.gz.sha256
+            sha256sum target/${{ matrix.target }}/release.tar.gz > target/${{ matrix.target }}/release.sha256
           else
-            sha256sum target/${{ matrix.target }}.zip > target/${{ matrix.target }}.zip.sha256
+            sha256sum target/${{ matrix.target }}/release.zip > target/${{ matrix.target }}/release.sha256
           fi
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            target/${{ matrix.target }}/release.${{ matrix.archive }}
-            target/${{ matrix.target }}/release.${{ matrix.archive }}.sha256
+          files: target/${{ matrix.target }}/release.${{ matrix.archive }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     needs: [vsix, build]
