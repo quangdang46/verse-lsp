@@ -5,111 +5,424 @@
 	"fileTypes": ["verse"],
 	"patterns": [
 		{
-			"include": "#comments"
+			"include": "#block_comment"
 		},
 		{
-			"include": "#module_paths"
+			"include": "#line_comment"
 		},
 		{
-			"include": "#attributes"
+			"include": "#markup_code"
 		},
 		{
-			"include": "#keywords"
+			"include": "#markup_content"
 		},
 		{
-			"include": "#declarations"
+			"include": "#attribute_spec"
 		},
 		{
-			"include": "#types"
+			"include": "#path_constant"
 		},
 		{
-			"include": "#strings"
+			"include": "#string"
 		},
 		{
-			"include": "#numbers"
+			"include": "#char_literal"
 		},
 		{
-			"include": "#operators"
+			"include": "#number"
 		},
 		{
-			"include": "#function_calls"
+			"include": "#keyword"
+		},
+		{
+			"include": "#identifier"
+		},
+		{
+			"include": "#operator"
+		},
+		{
+			"include": "#paren_expr"
+		},
+		{
+			"include": "#bracket_expr"
+		},
+		{
+			"include": "#brace_expr"
+		},
+		{
+			"include": "#indentation_block"
 		}
 	],
 	"repository": {
-		"comments": {
+		"block_comment": {
+			"name": "comment.block.verse",
+			"begin": "<#(?!>)",
+			"end": "(?<!<)#>"
+		},
+		"line_comment": {
 			"name": "comment.line.verse",
-			"match": "#.*$"
+			"match": "(?<!<)#(?!>).*$"
 		},
-		"module_paths": {
-			"name": "string.quoted.other.verse",
-			"match": "\\{[^}]+\\}"
+
+		"identifier": {
+			"patterns": [
+				{
+					"name": "variable.verse",
+					"match": "[.]?[A-Za-z_][A-Za-z0-9_]*+"
+				},
+				{
+					"name": "entity.name.function.verse",
+					"match": "(?<=[(\\[:,])\\s*+[A-Za-z_][A-Za-z0-9_]*+(?=\\s*+[(])"
+				}
+			]
 		},
-		"attributes": {
+
+		"number": {
+			"patterns": [
+				{
+					"name": "constant.numeric.verse",
+					"match": "0x[0-9A-Fa-f]++"
+				},
+				{
+					"name": "constant.numeric.verse",
+					"match": "(?!0o|0u)[0-9]++([.][0-9]++)?(e[+-]?[0-9]+)?(%|[A-Za-z_][A-Za-z0-9_]*+)?+"
+				}
+			]
+		},
+
+		"path_constant": {
+			"name": "constant.language.path.verse",
+			"match": "/[A-Za-z_][A-Za-z0-9_\\-.]*+(/[A-Za-z_][A-Za-z0-9_\\-.]*+)*+"
+		},
+
+		"char_literal": {
+			"patterns": [
+				{
+					"name": "string.quoted.single.verse",
+					"match": "'[^']*'?"
+				},
+				{
+					"name": "string.quoted.single.verse",
+					"match": "0o[0-9A-Fa-f]++"
+				},
+				{
+					"name": "string.quoted.single.verse",
+					"match": "0u[0-9A-Fa-f]++"
+				}
+			]
+		},
+
+		"string": {
+			"name": "string.quoted.double.verse",
+			"begin": "\"",
+			"end": "(\"|$)",
+			"patterns": [
+				{
+					"name": "constant.character.escape.verse",
+					"match": "\\\\(\\<(?!#)|[rnt'\"\\\\{}#<>&~]|$)"
+				},
+				{
+					"name": "constant.character.escape.verse",
+					"begin": "\\{",
+					"end": "\\}",
+					"patterns": [
+						{
+							"include": "#string"
+						}
+					]
+				},
+				{
+					"name": "string.quoted.double.verse",
+					"match": "[\\-\\[\\]\\&`~!@#$%^*()+=|:;',.?/A-Za-z0-9_ ]++"
+				}
+			]
+		},
+
+		"attribute_spec": {
 			"name": "entity.name.tag.verse",
 			"match": "<[a-zA-Z_][a-zA-Z0-9_]*>"
 		},
-		"keywords": {
+
+		"keyword": {
 			"patterns": [
 				{
-					"name": "keyword.declaration.verse",
-					"match": "\\b(module|class|enum|struct|interface|type)\\b"
+					"name": "keyword.operator.logical.verse",
+					"match": "(and|or|not)(?=\\W)"
 				},
 				{
 					"name": "keyword.control.verse",
-					"match": "\\b(if|else|for|while|loop|return|break|continue|match|switch|case|default|try|catch|throw|do|using|where|and|or|not|in|is|as|set|get)\\b"
+					"match": "\\b(if|else|for|while|loop|return|break|continue|match|switch|case|default|try|catch|throw|do|using|where|in|is|as|over|when|next|until|catch|then|else|of|at)\\b"
+				},
+				{
+					"name": "keyword.declaration.verse",
+					"match": "\\b(module|class|enum|struct|interface|type|var|set|ref|alias|live|with|yield)\\b"
 				},
 				{
 					"name": "constant.language.verse",
 					"match": "\\b(true|false|nil)\\b"
+				},
+				{
+					"name": "keyword.operator.verse",
+					"match": ":=|=|\\+=|-=|\\*=|/="
 				}
 			]
 		},
-		"declarations": {
-			"name": "entity.name.declaration.verse",
-			"match": "[a-zA-Z_][a-zA-Z0-9_]*\\s*:="
+
+		"operator": {
+			"patterns": [
+				{
+					"name": "keyword.operator.verse",
+					"match": "\\.\\.|->|<-|<:|>:|:"
+				},
+				{
+					"name": "keyword.operator.arithmetic.verse",
+					"match": "[+\\-*/]"
+				},
+				{
+					"name": "keyword.operator.comparison.verse",
+					"match": "=<|<>|<=|>=|<|>"
+				},
+				{
+					"name": "punctuation.definition.tag",
+					"match": "[|]"
+				}
+			]
 		},
-		"types": {
+
+		"paren_expr": {
+			"begin": "[(]",
+			"end": "[)]",
+			"patterns": [
+				{
+					"include": "#string"
+				},
+				{
+					"include": "#char_literal"
+				},
+				{
+					"include": "#number"
+				},
+				{
+					"include": "#keyword"
+				},
+				{
+					"include": "#identifier"
+				},
+				{
+					"include": "#operator"
+				},
+				{
+					"include": "#paren_expr"
+				},
+				{
+					"include": "#bracket_expr"
+				},
+				{
+					"include": "#brace_expr"
+				}
+			]
+		},
+
+		"bracket_expr": {
+			"begin": "\\[",
+			"end": "\\]",
+			"patterns": [
+				{
+					"include": "#string"
+				},
+				{
+					"include": "#char_literal"
+				},
+				{
+					"include": "#number"
+				},
+				{
+					"include": "#keyword"
+				},
+				{
+					"include": "#identifier"
+				},
+				{
+					"include": "#operator"
+				},
+				{
+					"include": "#paren_expr"
+				},
+				{
+					"include": "#bracket_expr"
+				},
+				{
+					"include": "#brace_expr"
+				}
+			]
+		},
+
+		"brace_expr": {
+			"begin": "[{]",
+			"end": "[}]",
+			"patterns": [
+				{
+					"include": "#string"
+				},
+				{
+					"include": "#char_literal"
+				},
+				{
+					"include": "#number"
+				},
+				{
+					"include": "#keyword"
+				},
+				{
+					"include": "#identifier"
+				},
+				{
+					"include": "#operator"
+				},
+				{
+					"include": "#paren_expr"
+				},
+				{
+					"include": "#bracket_expr"
+				},
+				{
+					"include": "#brace_expr"
+				}
+			]
+		},
+
+		"markup_code": {
+			"comment": "Recognizes markup code like :> at line start",
+			"begin": "^(?=([^#\\n]*):>\\s*(#|$))",
+			"end": "^(?!([^\\n]*):>)|\\s*$",
+			"patterns": [
+				{
+					"include": "#markup_content"
+				},
+				{
+					"include": "#string"
+				},
+				{
+					"include": "#char_literal"
+				},
+				{
+					"include": "#number"
+				},
+				{
+					"include": "#keyword"
+				},
+				{
+					"include": "#identifier"
+				},
+				{
+					"include": "#operator"
+				},
+				{
+					"include": "#block_comment"
+				},
+				{
+					"include": "#line_comment"
+				}
+			]
+		},
+
+		"markup_content": {
+			"comment": "Recognizes markup tags like <tag> and </tag>",
+			"begin": "<(?![/#=])\\s*([A-Za-z_][A-Za-z0-9_]*)?",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.definition.tag"
+				}
+			},
+			"end": "(?<!#>)(?<=>)",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.definition.tag"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#string"
+				},
+				{
+					"include": "#identifier"
+				},
+				{
+					"include": "#markup_content"
+				}
+			]
+		},
+
+		"indentation_block": {
+			"comment": "Handles indentation-based code blocks",
+			"patterns": [
+				{
+					"name": "meta.indent.verse",
+					"begin": "^(\\t|    ){1}(?=[^\\s#])",
+					"end": "^(\\t|    ){0}(?=[^\\s#])|^(?!(\\t|    ))",
+					"patterns": [
+						{
+							"include": "#block_comment"
+						},
+						{
+							"include": "#line_comment"
+						},
+						{
+							"include": "#markup_code"
+						},
+						{
+							"include": "#attribute_spec"
+						},
+						{
+							"include": "#path_constant"
+						},
+						{
+							"include": "#string"
+						},
+						{
+							"include": "#char_literal"
+						},
+						{
+							"include": "#number"
+						},
+						{
+							"include": "#keyword"
+						},
+						{
+							"include": "#identifier"
+						},
+						{
+							"include": "#operator"
+						},
+						{
+							"include": "#paren_expr"
+						},
+						{
+							"include": "#bracket_expr"
+						},
+						{
+							"include": "#brace_expr"
+						}
+					]
+				}
+			]
+		},
+
+		"type_name": {
 			"patterns": [
 				{
 					"name": "support.type.primitive.verse",
-					"match": "\\b(void|logic|int|float|string|message|agent|entity|component|var)\\b"
+					"match": "\\b(void|logic|int|float|string|message|agent|entity|component)\\b"
 				},
 				{
 					"name": "entity.name.type.verse",
 					"match": "\\b(tuple|listenable|generator|option|list|set|map|classifiable_subset)\\b"
-				}
-			]
-		},
-		"strings": {
-			"name": "string.quoted.double.verse",
-			"begin": "\"",
-			"end": "\"",
-			"patterns": [
-				{
-					"name": "constant.character.escape.verse",
-					"match": "\\\\."
-				}
-			]
-		},
-		"numbers": {
-			"patterns": [
-				{
-					"name": "constant.numeric.float.verse",
-					"match": "\\b\\d+\\.\\d+\\b"
 				},
 				{
-					"name": "constant.numeric.integer.verse",
-					"match": "\\b\\d+\\b"
+					"name": "support.type.verse",
+					"match": "\\b(vector2|vector3|rotator|transform|quaternion)\\b"
 				}
 			]
-		},
-		"operators": {
-			"name": "keyword.operator.verse",
-			"match": ":=|=|\\+=|-=|\\*=|/=|\\.\\.|->|<-|<:|>:|:"
-		},
-		"function_calls": {
-			"name": "entity.name.function.verse",
-			"match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\s*(?=\\()"
 		}
 	}
 }

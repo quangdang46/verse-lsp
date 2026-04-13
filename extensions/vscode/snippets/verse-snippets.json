@@ -1,0 +1,357 @@
+{
+	"Comment": {
+		"prefix": "comment",
+		"body": ["# ${1:my comment}"],
+		"description": "Adds a line comment"
+	},
+	"CommentBlock": {
+		"prefix": "comment-block",
+		"body": ["<# ${1:my comment} #>"],
+		"description": "Adds a multiline comment block"
+	},
+	"Print": {
+		"prefix": "print",
+		"body": ["Print(\"${1:Message}\", ?Duration:=${2:6.0})"],
+		"description": "Print message to console"
+	},
+	"Constant": {
+		"prefix": "constant",
+		"body": ["${1:ConstantName}:${2:type} = ${3:Value}"],
+		"description": "Declare a constant"
+	},
+	"Variable": {
+		"prefix": "var",
+		"body": ["var ${1:VariableName}:${2:type} = ${3:Value}"],
+		"description": "Declare a variable"
+	},
+	"SetStatement": {
+		"prefix": "set",
+		"body": ["set ${1:VariableName} = ${2:Value}"],
+		"description": "Set a variable value"
+	},
+	"ConstantLogic": {
+		"prefix": "constant-logic",
+		"body": ["${1:ConstantName}:logic = ${2:true}"],
+		"description": "Declare a logic constant"
+	},
+	"ConstantInt": {
+		"prefix": "constant-int",
+		"body": ["${1:ConstantName}:int = ${2:0}"],
+		"description": "Declare an int constant"
+	},
+	"ConstantFloat": {
+		"prefix": "constant-float",
+		"body": ["${1:ConstantName}:float = ${2:0.0}"],
+		"description": "Declare a float constant"
+	},
+	"ConstantString": {
+		"prefix": "constant-string",
+		"body": ["${1:ConstantName}:string = \"${2:Value}\""],
+		"description": "Declare a string constant"
+	},
+	"ConstantMessage": {
+		"prefix": "constant-message",
+		"body": ["${1:ConstantName}:message = \"${2:Value}\""],
+		"description": "Declare a message constant"
+	},
+	"VariableLogic": {
+		"prefix": "var-logic",
+		"body": ["var ${1:VariableName}:logic = ${2:true}"],
+		"description": "Declare a logic variable"
+	},
+	"VariableInt": {
+		"prefix": "var-int",
+		"body": ["var ${1:VariableName}:int = ${2:0}"],
+		"description": "Declare an int variable"
+	},
+	"VariableFloat": {
+		"prefix": "var-float",
+		"body": ["var ${1:VariableName}:float = ${2:0.0}"],
+		"description": "Declare a float variable"
+	},
+	"VariableString": {
+		"prefix": "var-string",
+		"body": ["var ${1:VariableName}:string = \"${2:Value}\""],
+		"description": "Declare a string variable"
+	},
+	"VariableMessage": {
+		"prefix": "var-message",
+		"body": ["var ${1:VariableName}:message = \"${2:Value}\""],
+		"description": "Declare a message variable"
+	},
+	"ConstantArray": {
+		"prefix": "constant-array",
+		"body": ["${1:ConstantName}:[]${2:type} = array{${3:Value}}"],
+		"description": "Declare an array constant"
+	},
+	"ConstantMap": {
+		"prefix": "constant-map",
+		"body": ["${1:ConstantName}:[${2:key_type}]${3:value_type} = map{${4:Key} => ${5:Value}}"],
+		"description": "Declare a map constant"
+	},
+	"VariableArray": {
+		"prefix": "var-array",
+		"body": ["var ${1:VariableName}:[]${2:type} = array{${3:Value}}"],
+		"description": "Declare an array variable"
+	},
+	"VariableMap": {
+		"prefix": "var-map",
+		"body": ["var ${1:VariableName}:[${2:key_type}]${3:value_type} = map{${4:Key} => ${5:Value}}"],
+		"description": "Declare a map variable"
+	},
+	"Class": {
+		"prefix": "class",
+		"body": [
+			"${1:new_class_name} := class:",
+			"    ${2:Print(\"Class body\")}"
+		],
+		"description": "Class declaration"
+	},
+	"ClassSubclass": {
+		"prefix": "class-sub",
+		"body": [
+			"${1:new_class_name} := class(${2:parent_class_name}):",
+			"    ${3:Print(\"Class body\")}"
+		],
+		"description": "Derived class declaration"
+	},
+	"ClassCreativeDevice": {
+		"prefix": "class-device",
+		"body": [
+			"using { /Fortnite.com/Devices }",
+			"${1:my_device}<${2:epic_internal}> := class(${3:creative_device}):",
+			"",
+			"    OnBegin<override>():void =",
+			"        Print(\"$1 OnBegin\", ?Duration:=6.0)"
+		],
+		"description": "Creative device class declaration"
+	},
+	"ClassConstructor": {
+		"prefix": "constructor",
+		"body": [
+			"${1:ConstructorName}<constructor>(${2:InitParam}:${3:type}) := ${4:class_name}:",
+			"    ${5:ClassMember} := $2"
+		],
+		"description": "Class constructor definition"
+	},
+	"ConstantClassInstance": {
+		"prefix": "constant-class",
+		"body": ["${1:InstanceName}:${2:class_name} = $2{}"],
+		"description": "Declare a class instance constant"
+	},
+	"VariableClassInstance": {
+		"prefix": "var-class",
+		"body": ["var ${1:InstanceName}:${2:class_name} = $2{}"],
+		"description": "Declare a class instance variable"
+	},
+	"Struct": {
+		"prefix": "struct",
+		"body": [
+			"${1:new_struct_name} := struct:",
+			"    ${2:# Struct body}"
+		],
+		"description": "Struct declaration"
+	},
+	"Interface": {
+		"prefix": "interface",
+		"body": [
+			"${1:interface_name} := interface:",
+			"    ${2:InterfaceFunction()}: ${3:void}",
+			"       ${4:Print(\"Function body\")}"
+		],
+		"description": "Interface declaration"
+	},
+	"Enum": {
+		"prefix": "enum",
+		"body": ["${1:EnumName} := enum{${2:EnumValue}}"],
+		"description": "Enum declaration"
+	},
+	"EditableProperty": {
+		"prefix": "editable",
+		"body": ["@editable", "${1:# constant or variable}"],
+		"description": "Editable property attribute"
+	},
+	"Module": {
+		"prefix": "module",
+		"body": ["module ${1:ModuleName};"],
+		"description": "Module declaration"
+	},
+	"Using": {
+		"prefix": "using",
+		"body": ["using { ${1:/Fortnite.com/Devices} }"],
+		"description": "Using statement"
+	},
+	"Function": {
+		"prefix": "fn",
+		"body": [
+			"${1:FunctionName}(${2:ParameterName}:${3:type}):${4:void}=",
+			"    ${5:Print(\"Function body\")}"
+		],
+		"description": "Function definition"
+	},
+	"Subscribe": {
+		"prefix": "subscribe",
+		"body": ["${1:ClassInstanceName}.${2:EventName}.Subscribe(${3:SubscribedFunctionName})"],
+		"description": "Subscribe to an event"
+	},
+	"IfStatement": {
+		"prefix": "if",
+		"body": [
+			"if (${1:ConditionFunction[]}):",
+			"    ${2:Print(\"Function body\")}"
+		],
+		"description": "If statement"
+	},
+	"IfThen": {
+		"prefix": "if-then",
+		"body": [
+			"if:",
+			"    ${1:ConditionFunction[]}",
+			"then:",
+			"    ${2:Print(\"Then body\")}"
+		],
+		"description": "If-then statement"
+	},
+	"IfThenElse": {
+		"prefix": "if-else",
+		"body": [
+			"if:",
+			"    ${1:ConditionFunction[]}",
+			"then:",
+			"    ${2:Print(\"Then body\")}",
+			"else:",
+			"    ${3:Print(\"Else body\")}"
+		],
+		"description": "If-then-else statement"
+	},
+	"ForLoop": {
+		"prefix": "for",
+		"body": [
+			"for(${1:Element}:${2:Elements}):",
+			"    ${3:Print(\"For body\")}"
+		],
+		"description": "For loop"
+	},
+	"ForRange": {
+		"prefix": "for-range",
+		"body": [
+			"for(${1:Index} := ${2:0}..${3:5}):",
+			"    ${4:Print(\"For body\")}"
+		],
+		"description": "For loop with range"
+	},
+	"ForConditional": {
+		"prefix": "for-cond",
+		"body": [
+			"for(${1:Element}:${2:Elements}, ${3:<# Condition #>}):",
+			"    ${4:Print(\"For body\")}"
+		],
+		"description": "For loop with condition"
+	},
+	"ForFilter": {
+		"prefix": "for-filter",
+		"body": [
+			"${1:FilterResult}:[]${2:type} = for:",
+			"    ${3:Element}:${4:Elements}",
+			"    ${5:ConditionFunction[]}",
+			"do:",
+			"    $3"
+		],
+		"description": "For loop for filtering"
+	},
+	"CaseStatement": {
+		"prefix": "case",
+		"body": [
+			"case (${1:Value}):",
+			"    ${2:FirstCase} =>",
+			"        ${3:Print(\"First case body\")}",
+			"    _ => # default",
+			"        ${4:Print(\"Default case body\")}"
+		],
+		"description": "Case statement"
+	},
+	"LoopStatement": {
+		"prefix": "loop",
+		"body": [
+			"loop:",
+			"    ${1:Print(\"Loop body\")}"
+		],
+		"description": "Infinite loop"
+	},
+	"LoopWithBreak": {
+		"prefix": "loop-break",
+		"body": [
+			"loop:",
+			"    ${1:Print(\"Loop body\")}",
+			"    if (${2:Conditional[]}):",
+			"        break"
+		],
+		"description": "Loop with conditional break"
+	},
+	"DeferStatement": {
+		"prefix": "defer",
+		"body": [
+			"defer:",
+			"    ${1:DeferredExpression()}"
+		],
+		"description": "Defer statement"
+	},
+	"SyncBlock": {
+		"prefix": "sync",
+		"body": [
+			"sync:",
+			"    ${1:SubExpression()}"
+		],
+		"description": "Sync concurrency block"
+	},
+	"BranchBlock": {
+		"prefix": "branch",
+		"body": [
+			"branch:",
+			"    ${1:SubExpression()}"
+		],
+		"description": "Branch concurrency block"
+	},
+	"RaceBlock": {
+		"prefix": "race",
+		"body": [
+			"race:",
+			"    ${1:SubExpression()}"
+		],
+		"description": "Race concurrency block"
+	},
+	"RushBlock": {
+		"prefix": "rush",
+		"body": [
+			"rush:",
+			"    ${1:SubExpression()}"
+		],
+		"description": "Rush concurrency block"
+	},
+	"FilterArray": {
+		"prefix": "filter-array",
+		"body": [
+			"# Filter an array",
+			"${1:FilterResult}:[]${2:type} = for:",
+			"    ${3:Element}:${4:Elements}",
+			"    ${5:ConditionFunction[]}",
+			"do:",
+			"    $3"
+		],
+		"description": "Filter an array"
+	},
+	"CustomDebugLog": {
+		"prefix": "debug-log",
+		"body": [
+			"# Create a custom log channel",
+			"${1:custom_log} := class(log_channel){}",
+			"",
+			"# TODO: Place the log channel in your custom class",
+			"${2:CustomDebugLog}:log = log{Channel := ${1:custom_log}}",
+			"",
+			"# TODO: Place debug log print messages where appropriate for your class",
+			"${2:CustomDebugLog}.Print(\"${3:DiagnosticMessage}\")"
+		],
+		"description": "Create a custom debug log channel"
+	}
+}

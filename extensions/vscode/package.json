@@ -1,8 +1,8 @@
 {
   "name": "verse-language",
   "displayName": "Verse Language",
-  "description": "Language support for Verse (UEFN) via LSP",
-  "version": "0.1.0",
+  "description": "Language support for Verse (UEFN) via LSP with enhanced syntax highlighting, themes, and snippets",
+  "version": "0.2.0",
   "publisher": "quangdang46",
   "engines": {
     "vscode": "^1.70.0"
@@ -35,6 +35,19 @@
         "aliases": [
           "Verse"
         ]
+      }
+    ],
+    "themes": [
+      {
+        "label": "Verse-Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/verse-dark.tmTheme.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "verse",
+        "path": "./snippets/verse-snippets.json"
       }
     ],
     "configuration": {
