@@ -100,7 +100,7 @@ impl Parser {
                 if let Some(path) = self.extract_using_path(line) {
                     self.module_using
                         .entry(module.clone())
-                        .or_insert_with(Vec::new)
+                        .or_default()
                         .push(path);
                 }
             }

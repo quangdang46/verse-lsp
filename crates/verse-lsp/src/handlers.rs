@@ -1,11 +1,14 @@
 use crate::VerseServer;
-use verse_analysis::{complete_global, complete_member, complete_module_path, guess_type};
-use verse_analysis::hover::format_hover_markdown;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
+use verse_analysis::hover::format_hover_markdown;
+use verse_analysis::{complete_global, complete_member, complete_module_path, guess_type};
 
 impl VerseServer {
-    pub async fn handle_completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+    pub async fn handle_completion(
+        &self,
+        params: CompletionParams,
+    ) -> Result<Option<CompletionResponse>> {
         let docs = self.documents.read().await;
         let doc = match docs.get(&params.text_document_position.text_document.uri) {
             Some(d) => d,
@@ -28,8 +31,7 @@ impl VerseServer {
             &line_text[..col]
         };
 
-        let items = if before_cursor.ends_with('.') {
-            let prefix = &before_cursor[..before_cursor.len() - 1];
+        let items = if let Some(prefix) = before_cursor.strip_suffix('.') {
             if let Some(type_hint) = guess_type(prefix) {
                 complete_member(&self.db, &type_hint)
             } else {
@@ -41,15 +43,18 @@ impl VerseServer {
             complete_global(&self.db)
         };
 
-        let response = CompletionResponse::Array(items.into_iter().map(|item| {
-            CompletionItem {
-                label: item.label,
-                kind: item.kind.map(kind_to_lsp_kind),
-                detail: item.detail,
-                documentation: item.documentation.map(|d| Documentation::String(d)),
-                ..Default::default()
-            }
-        }).collect());
+        let response = CompletionResponse::Array(
+            items
+                .into_iter()
+                .map(|item| CompletionItem {
+                    label: item.label,
+                    kind: item.kind.map(kind_to_lsp_kind),
+                    detail: item.detail,
+                    documentation: item.documentation.map(Documentation::String),
+                    ..Default::default()
+                })
+                .collect(),
+        );
 
         Ok(Some(response))
     }
@@ -62,7 +67,7 @@ impl VerseServer {
         };
 
         let position = params.text_document_position_params.position;
-        let line_num = position.line as u32;
+        let line_num = position.line;
 
         let lines: Vec<&str> = doc.content.lines().collect();
         if line_num as usize >= lines.len() {
@@ -87,7 +92,10 @@ impl VerseServer {
         Ok(None)
     }
 
-    pub async fn handle_goto_definition(&self, params: GotoDefinitionParams) -> Result<Option<GotoDefinitionResponse>> {
+    pub async fn handle_goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
         let docs = self.documents.read().await;
         let doc = match docs.get(&params.text_document_position_params.text_document.uri) {
             Some(d) => d,
@@ -95,7 +103,7 @@ impl VerseServer {
         };
 
         let position = params.text_document_position_params.position;
-        let line_num = position.line as u32;
+        let line_num = position.line;
 
         let lines: Vec<&str> = doc.content.lines().collect();
         if line_num as usize >= lines.len() {
@@ -106,10 +114,12 @@ impl VerseServer {
 
         for symbol in self.db.get_public_symbols() {
             if line_text.contains(&symbol.name) {
-                let uri = format!("digest://{}/{}", symbol.location.source, symbol.location.line);
-                let target_uri = Uri::from_file_path(&uri).unwrap_or_else(|| {
-                    Uri::from_file_path("").unwrap()
-                });
+                let uri = format!(
+                    "digest://{}/{}",
+                    symbol.location.source, symbol.location.line
+                );
+                let target_uri =
+                    Uri::from_file_path(&uri).unwrap_or_else(|| Uri::from_file_path("").unwrap());
                 return Ok(Some(GotoDefinitionResponse::Link(vec![LocationLink {
                     origin_selection_range: Some(Range::new(position, position)),
                     target_uri,
@@ -123,7 +133,10 @@ impl VerseServer {
     }
 
     #[allow(deprecated)]
-    pub async fn handle_workspace_symbols(&self, params: WorkspaceSymbolParams) -> Result<Option<WorkspaceSymbolResponse>> {
+    pub async fn handle_workspace_symbols(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> Result<Option<WorkspaceSymbolResponse>> {
         let query = params.query.to_lowercase();
         let mut results = Vec::new();
 
@@ -135,7 +148,8 @@ impl VerseServer {
                         name: symbol.name.clone(),
                         kind: symbol_kind_to_lsp_kind(&symbol.kind),
                         location: Location {
-                            uri: Uri::from_file_path(&uri).unwrap_or_else(|| Uri::from_file_path("").unwrap()),
+                            uri: Uri::from_file_path(&uri)
+                                .unwrap_or_else(|| Uri::from_file_path("").unwrap()),
                             range: Range::default(),
                         },
                         container_name: Some(module.name.clone()),
@@ -151,7 +165,10 @@ impl VerseServer {
     }
 
     #[allow(deprecated)]
-    pub async fn handle_document_symbols(&self, params: DocumentSymbolParams) -> Result<Option<DocumentSymbolResponse>> {
+    pub async fn handle_document_symbols(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> Result<Option<DocumentSymbolResponse>> {
         let docs = self.documents.read().await;
         let doc = match docs.get(&params.text_document.uri) {
             Some(d) => d,
@@ -168,12 +185,24 @@ impl VerseServer {
                         name: symbol.name.clone(),
                         kind: symbol_kind_to_lsp_kind(&symbol.kind),
                         range: Range {
-                            start: Position { line: idx as u32, character: 0 },
-                            end: Position { line: idx as u32, character: line.len() as u32 },
+                            start: Position {
+                                line: idx as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: idx as u32,
+                                character: line.len() as u32,
+                            },
                         },
                         selection_range: Range {
-                            start: Position { line: idx as u32, character: 0 },
-                            end: Position { line: idx as u32, character: symbol.name.len() as u32 },
+                            start: Position {
+                                line: idx as u32,
+                                character: 0,
+                            },
+                            end: Position {
+                                line: idx as u32,
+                                character: symbol.name.len() as u32,
+                            },
                         },
                         detail: None,
                         children: None,
@@ -187,14 +216,17 @@ impl VerseServer {
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))
     }
 
-    pub async fn handle_completion_resolve(&self, params: CompletionItem) -> Result<CompletionItem> {
+    pub async fn handle_completion_resolve(
+        &self,
+        params: CompletionItem,
+    ) -> Result<CompletionItem> {
         Ok(params)
     }
 }
 
 fn kind_to_lsp_kind(kind: verse_analysis::CompletionItemKind) -> CompletionItemKind {
-    use verse_analysis::CompletionItemKind as C;
     use tower_lsp_server::ls_types::CompletionItemKind as L;
+    use verse_analysis::CompletionItemKind as C;
     match kind {
         C::TEXT => L::TEXT,
         C::METHOD => L::METHOD,
@@ -225,8 +257,8 @@ fn kind_to_lsp_kind(kind: verse_analysis::CompletionItemKind) -> CompletionItemK
 }
 
 fn symbol_kind_to_lsp_kind(kind: &verse_parser::SymbolKind) -> SymbolKind {
-    use verse_parser::SymbolKind as S;
     use tower_lsp_server::ls_types::SymbolKind as L;
+    use verse_parser::SymbolKind as S;
     match kind {
         S::Module => L::MODULE,
         S::Class => L::CLASS,

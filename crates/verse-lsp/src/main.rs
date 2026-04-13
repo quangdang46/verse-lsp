@@ -1,13 +1,13 @@
 mod handlers;
 
-use verse_parser::SymbolDb;
-use verse_analysis::documents::Document;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
-use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
+use tower_lsp_server::{Client, LanguageServer, LspService, Server};
+use verse_analysis::documents::Document;
+use verse_parser::SymbolDb;
 
 pub struct VerseServer {
     client: Client,
@@ -42,7 +42,9 @@ impl LanguageServer for VerseServer {
     }
 
     async fn initialized(&self, _: InitializedParams) {
-        self.client.log_message(MessageType::INFO, "verse-lsp initialized").await;
+        self.client
+            .log_message(MessageType::INFO, "verse-lsp initialized")
+            .await;
     }
 
     async fn shutdown(&self) -> Result<()> {
@@ -51,10 +53,7 @@ impl LanguageServer for VerseServer {
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let mut docs = self.documents.write().await;
-        let doc = Document::new(
-            params.text_document.version,
-            params.text_document.text,
-        );
+        let doc = Document::new(params.text_document.version, params.text_document.text);
         docs.insert(params.text_document.uri, doc);
     }
 
@@ -81,8 +80,7 @@ impl LanguageServer for VerseServer {
         docs.remove(&params.text_document.uri);
     }
 
-    async fn did_save(&self, _params: DidSaveTextDocumentParams) {
-    }
+    async fn did_save(&self, _params: DidSaveTextDocumentParams) {}
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         self.handle_completion(params).await
@@ -92,15 +90,24 @@ impl LanguageServer for VerseServer {
         self.handle_hover(params).await
     }
 
-    async fn goto_definition(&self, params: GotoDefinitionParams) -> Result<Option<GotoDefinitionResponse>> {
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
         self.handle_goto_definition(params).await
     }
 
-    async fn symbol(&self, params: WorkspaceSymbolParams) -> Result<Option<WorkspaceSymbolResponse>> {
+    async fn symbol(
+        &self,
+        params: WorkspaceSymbolParams,
+    ) -> Result<Option<WorkspaceSymbolResponse>> {
         self.handle_workspace_symbols(params).await
     }
 
-    async fn document_symbol(&self, params: DocumentSymbolParams) -> Result<Option<DocumentSymbolResponse>> {
+    async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> Result<Option<DocumentSymbolResponse>> {
         self.handle_document_symbols(params).await
     }
 
@@ -115,7 +122,8 @@ fn char_index(content: &str, line: u32, character: u32) -> Option<usize> {
 
     for (i, c) in content.char_indices() {
         if current_line == line {
-            if character as usize == 0 || (current_byte == i && character as usize <= c.len_utf8()) {
+            if character as usize == 0 || (current_byte == i && character as usize <= c.len_utf8())
+            {
                 return Some(i);
             }
             current_byte += c.len_utf8();
@@ -146,8 +154,10 @@ async fn main() {
     let db = Arc::new(SymbolDb::load_bundled());
     let documents = Arc::new(RwLock::new(HashMap::new()));
 
-    let (service, socket) = LspService::new(|client| {
-        VerseServer { client, db, documents }
+    let (service, socket) = LspService::new(|client| VerseServer {
+        client,
+        db,
+        documents,
     });
 
     Server::new(stdin, stdout, socket).serve(service).await;

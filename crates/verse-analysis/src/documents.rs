@@ -54,7 +54,8 @@ fn character_to_byte_index(content: &str, line: u32, character: u32) -> Option<u
 
     for (i, c) in content.char_indices() {
         if current_line == line {
-            if character as usize == 0 || (current_byte == i && character as usize <= c.len_utf8()) {
+            if character as usize == 0 || (current_byte == i && character as usize <= c.len_utf8())
+            {
                 return Some(i);
             }
             current_byte += c.len_utf8();
