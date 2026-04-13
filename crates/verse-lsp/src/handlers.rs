@@ -1,10 +1,13 @@
 use crate::VerseServer;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
-use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
-use verse_analysis::{complete_global, complete_member, complete_module_path, find_type_in_buffer, guess_type, resolve_type_canonical};
 use verse_analysis::definition::find_definition_at;
+use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
 use verse_analysis::WorkspaceSymbol;
+use verse_analysis::{
+    complete_global, complete_member, complete_module_path, find_type_in_buffer, guess_type,
+    resolve_type_canonical,
+};
 
 fn ws_symbol_to_symbol_info(
     sym: &WorkspaceSymbol,
@@ -32,10 +35,7 @@ fn ws_symbol_to_symbol_info(
     }
 }
 
-fn symbol_to_symbol_info(
-    sym: &verse_parser::Symbol,
-    module_name: &str,
-) -> SymbolInformation {
+fn symbol_to_symbol_info(sym: &verse_parser::Symbol, module_name: &str) -> SymbolInformation {
     let uri = format!("digest://{}/{}", module_name, sym.location.line);
     let loc_uri = Uri::from_file_path(&uri)
         .unwrap_or_else(|| Uri::from_file_path("/workspace/fallback").unwrap());
