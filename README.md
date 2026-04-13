@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![CI](https://github.com/verse-lsp/verse-lsp/actions/workflows/ci.yml/badge.svg)](https://github.com/verse-lsp/verse-lsp/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/verse-lsp/verse-lsp/ci.yml?style=flat&logo=github)](https://github.com/verse-lsp/verse-lsp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org)
 
