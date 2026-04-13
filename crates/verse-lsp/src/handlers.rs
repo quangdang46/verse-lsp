@@ -1,8 +1,9 @@
 use crate::VerseServer;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
-use verse_analysis::hover::format_hover_markdown;
+use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
 use verse_analysis::{complete_global, complete_member, complete_module_path, guess_type};
+use verse_analysis::definition::find_definition_at;
 
 impl VerseServer {
     pub async fn handle_completion(
@@ -68,6 +69,7 @@ impl VerseServer {
 
         let position = params.text_document_position_params.position;
         let line_num = position.line;
+        let col_num = position.character;
 
         let lines: Vec<&str> = doc.content.lines().collect();
         if line_num as usize >= lines.len() {
@@ -76,17 +78,16 @@ impl VerseServer {
 
         let line_text = lines[line_num as usize];
 
-        for symbol in self.db.get_public_symbols() {
-            if line_text.contains(&symbol.name) {
-                let markdown = format_hover_markdown(symbol);
-                return Ok(Some(Hover {
-                    contents: HoverContents::Markup(MarkupContent {
-                        kind: MarkupKind::Markdown,
-                        value: markdown,
-                    }),
-                    range: None,
-                }));
-            }
+        let symbols: Vec<_> = self.db.get_public_symbols();
+        if let Some(symbol) = find_symbol_at_cursor(line_text, line_num, col_num, &symbols) {
+            let markdown = format_hover_markdown(symbol);
+            return Ok(Some(Hover {
+                contents: HoverContents::Markup(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: markdown,
+                }),
+                range: None,
+            }));
         }
 
         Ok(None)
@@ -104,6 +105,7 @@ impl VerseServer {
 
         let position = params.text_document_position_params.position;
         let line_num = position.line;
+        let col_num = position.character;
 
         let lines: Vec<&str> = doc.content.lines().collect();
         if line_num as usize >= lines.len() {
@@ -111,22 +113,29 @@ impl VerseServer {
         }
 
         let line_text = lines[line_num as usize];
+        let symbols: Vec<_> = self.db.get_public_symbols();
 
-        for symbol in self.db.get_public_symbols() {
-            if line_text.contains(&symbol.name) {
-                let uri = format!(
-                    "digest://{}/{}",
-                    symbol.location.source, symbol.location.line
-                );
-                let target_uri =
-                    Uri::from_file_path(&uri).unwrap_or_else(|| Uri::from_file_path("").unwrap());
-                return Ok(Some(GotoDefinitionResponse::Link(vec![LocationLink {
-                    origin_selection_range: Some(Range::new(position, position)),
-                    target_uri,
-                    target_range: Range::new(position, position),
-                    target_selection_range: Range::new(position, position),
-                }])));
-            }
+        if let Some(def_result) = find_definition_at(line_text, line_num, col_num, &symbols) {
+            let uri = format!("digest://{}/{}", def_result.source, def_result.line);
+            let target_uri =
+                Uri::from_file_path(&uri).unwrap_or_else(|| Uri::from_file_path("").unwrap());
+
+            // Find the symbol to get its name length for proper range
+            let name_len = def_result.name.len() as u32;
+            let origin_range = Range::new(position, Position::new(line_num, col_num + name_len));
+
+            // Target is at the beginning of the definition line
+            let target_range = Range::new(
+                Position::new(def_result.line.saturating_sub(1), 0),
+                Position::new(def_result.line.saturating_sub(1), name_len),
+            );
+
+            return Ok(Some(GotoDefinitionResponse::Link(vec![LocationLink {
+                origin_selection_range: Some(origin_range),
+                target_uri,
+                target_range,
+                target_selection_range: target_range,
+            }])));
         }
 
         Ok(None)

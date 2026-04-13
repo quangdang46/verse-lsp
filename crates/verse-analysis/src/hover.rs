@@ -1,5 +1,67 @@
 use verse_parser::{Symbol, SymbolDetail};
 
+fn get_word_at_cursor(line: &str, column: usize) -> Option<(&str, usize, usize)> {
+    let line_bytes = line.as_bytes();
+    if column > line_bytes.len() {
+        return None;
+    }
+
+    let mut start = column;
+    let mut end = column;
+
+    while start > 0 && is_identifier_char(line_bytes[start - 1]) {
+        start -= 1;
+    }
+
+    while end < line_bytes.len() && is_identifier_char(line_bytes[end]) {
+        end += 1;
+    }
+
+    if start == end {
+        return None;
+    }
+
+    let word = &line[start..end];
+    if word.is_empty() || !is_identifier_start(word.as_bytes()[0]) {
+        return None;
+    }
+
+    Some((word, start, end))
+}
+
+fn is_identifier_char(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'_'
+}
+
+fn is_identifier_start(b: u8) -> bool {
+    b.is_ascii_alphabetic() || b == b'_'
+}
+
+pub fn find_symbol_at_cursor<'a>(
+    content: &str,
+    line: u32,
+    column: u32,
+    symbols: &'a [&'a Symbol],
+) -> Option<&'a Symbol> {
+    let lines: Vec<&str> = content.lines().collect();
+    if line as usize >= lines.len() {
+        return None;
+    }
+
+    let current_line = lines[line as usize];
+    let col = column as usize;
+
+    let (word, _, _) = get_word_at_cursor(current_line, col)?;
+
+    for symbol in symbols {
+        if symbol.name == word {
+            return Some(symbol);
+        }
+    }
+
+    None
+}
+
 pub fn format_hover_markdown(symbol: &Symbol) -> String {
     let mut md = format!("## `{}`\n\n", symbol.name);
 
