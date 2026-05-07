@@ -367,9 +367,7 @@ impl VerseServer {
                                 .into_iter()
                                 .map(|p| ParameterInformation {
                                     label: ParameterLabel::Simple(p.label),
-                                    documentation: p
-                                        .documentation
-                                        .map(Documentation::String),
+                                    documentation: p.documentation.map(Documentation::String),
                                 })
                                 .collect(),
                         ),
