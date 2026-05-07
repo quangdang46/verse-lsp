@@ -42,9 +42,32 @@ impl SymbolDb {
         let mut parser = Parser::new();
         let mut current_module_name = String::new();
         let mut module_usings: Vec<String> = Vec::new();
+        let mut pending_doc: Vec<String> = Vec::new();
 
         for (line_num, line) in content.lines().enumerate() {
             let line_num = line_num as u32 + 1;
+            let trimmed = line.trim();
+
+            // Collect doc comments (lines starting with #, but not the file header)
+            if trimmed.starts_with("# ") && line_num > 6 {
+                pending_doc.push(trimmed.trim_start_matches("# ").to_string());
+                continue;
+            }
+
+            // Skip decorator lines but preserve pending doc
+            if trimmed.starts_with('@') {
+                continue;
+            }
+
+            let doc_text = if !pending_doc.is_empty() {
+                let doc = pending_doc.join("\n");
+                pending_doc.clear();
+                Some(doc)
+            } else {
+                None
+            };
+
+            let symbols_before = parser.symbols().len();
 
             if line.contains(":= module:") {
                 if let Some(name) = extract_module_name(line) {
@@ -55,13 +78,23 @@ impl SymbolDb {
 
             parser.parse_line(line, line_num, source);
 
-            if line.starts_with("using {") {
+            // Attach doc comment to newly created symbol
+            if let Some(doc) = doc_text {
+                let symbols = parser.symbols_mut();
+                if symbols.len() > symbols_before {
+                    if let Some(last) = symbols.last_mut() {
+                        last.doc = Some(doc);
+                    }
+                }
+            }
+
+            if trimmed.starts_with("using {") {
                 if let Some(path) = extract_using_path(line) {
                     module_usings.push(path);
                 }
             }
 
-            if line.trim().is_empty() && !current_module_name.is_empty() {
+            if trimmed.is_empty() && !current_module_name.is_empty() {
                 let symbols = parser.symbols().to_vec();
                 let module = Module {
                     name: current_module_name.clone(),

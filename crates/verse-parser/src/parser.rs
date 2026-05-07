@@ -24,6 +24,10 @@ impl Parser {
         &self.symbols
     }
 
+    pub fn symbols_mut(&mut self) -> &mut Vec<Symbol> {
+        &mut self.symbols
+    }
+
     pub fn new() -> Self {
         Self {
             state: ParseState::TopLevel,

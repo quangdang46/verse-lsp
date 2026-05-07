@@ -1,6 +1,7 @@
 use crate::VerseServer;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::*;
+use verse_analysis::completion::{complete_builtin_types, complete_keywords, complete_snippets};
 use verse_analysis::definition::find_definition_at;
 use verse_analysis::get_word_at_cursor;
 use verse_analysis::hover::{find_symbol_at_cursor, format_hover_markdown};
@@ -83,6 +84,16 @@ impl VerseServer {
             &line_text[..col]
         };
 
+        // Extract the word prefix being typed for filtering
+        let word_prefix = {
+            let bytes = before_cursor.as_bytes();
+            let mut end = bytes.len();
+            while end > 0 && (bytes[end - 1].is_ascii_alphanumeric() || bytes[end - 1] == b'_') {
+                end -= 1;
+            }
+            &before_cursor[end..]
+        };
+
         let items = if let Some(prefix) = before_cursor.strip_suffix('.') {
             if let Some(type_expr) = find_type_in_buffer(&doc.content, prefix) {
                 if let Some(canonical) = resolve_type_canonical(&self.db, &type_expr) {
@@ -103,7 +114,11 @@ impl VerseServer {
         } else if before_cursor.ends_with('/') {
             complete_module_path(&self.db, before_cursor)
         } else {
-            complete_global(&self.db)
+            let mut items = complete_global(&self.db);
+            items.extend(complete_keywords(word_prefix));
+            items.extend(complete_builtin_types(word_prefix));
+            items.extend(complete_snippets(word_prefix));
+            items
         };
 
         let response = CompletionResponse::Array(
@@ -318,6 +333,94 @@ impl VerseServer {
         params: CompletionItem,
     ) -> Result<CompletionItem> {
         Ok(params)
+    }
+
+    pub async fn handle_signature_help(
+        &self,
+        params: SignatureHelpParams,
+    ) -> Result<Option<SignatureHelp>> {
+        let uri = &params.text_document_position_params.text_document.uri;
+        let docs = self.documents.read().await;
+        let doc = match docs.get(uri) {
+            Some(d) => d,
+            None => return Ok(None),
+        };
+
+        let position = params.text_document_position_params.position;
+        let sig = verse_analysis::get_signature_help(
+            &doc.content,
+            position.line,
+            position.character,
+            &self.db,
+        );
+
+        match sig {
+            Some(help) => {
+                let signatures: Vec<SignatureInformation> = help
+                    .signatures
+                    .into_iter()
+                    .map(|s| SignatureInformation {
+                        label: s.label,
+                        documentation: s.documentation.map(Documentation::String),
+                        parameters: Some(
+                            s.parameters
+                                .into_iter()
+                                .map(|p| ParameterInformation {
+                                    label: ParameterLabel::Simple(p.label),
+                                    documentation: p.documentation.map(Documentation::String),
+                                })
+                                .collect(),
+                        ),
+                        active_parameter: None,
+                    })
+                    .collect();
+
+                Ok(Some(SignatureHelp {
+                    signatures,
+                    active_signature: Some(help.active_signature),
+                    active_parameter: Some(help.active_parameter),
+                }))
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub async fn publish_diagnostics(&self, uri: Uri, content: &str) {
+        let diags = verse_analysis::diagnose(content, &self.db);
+        let lsp_diags: Vec<tower_lsp_server::ls_types::Diagnostic> = diags
+            .into_iter()
+            .map(|d| {
+                let severity = match d.severity {
+                    verse_analysis::DiagnosticSeverity::Error => {
+                        tower_lsp_server::ls_types::DiagnosticSeverity::ERROR
+                    }
+                    verse_analysis::DiagnosticSeverity::Warning => {
+                        tower_lsp_server::ls_types::DiagnosticSeverity::WARNING
+                    }
+                    verse_analysis::DiagnosticSeverity::Hint => {
+                        tower_lsp_server::ls_types::DiagnosticSeverity::HINT
+                    }
+                };
+                tower_lsp_server::ls_types::Diagnostic {
+                    range: Range {
+                        start: Position {
+                            line: d.line,
+                            character: d.col_start,
+                        },
+                        end: Position {
+                            line: d.line,
+                            character: d.col_end,
+                        },
+                    },
+                    severity: Some(severity),
+                    source: Some("verse-lsp".to_string()),
+                    message: d.message,
+                    ..Default::default()
+                }
+            })
+            .collect();
+
+        self.client.publish_diagnostics(uri, lsp_diags, None).await;
     }
 }
 
