@@ -47,6 +47,11 @@ impl LanguageServer for VerseServer {
                 definition_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
+                signature_help_provider: Some(SignatureHelpOptions {
+                    trigger_characters: Some(vec!["(".to_string(), ",".to_string()]),
+                    retrigger_characters: Some(vec![",".to_string()]),
+                    ..Default::default()
+                }),
                 ..Default::default()
             },
             ..Default::default()
@@ -73,6 +78,8 @@ impl LanguageServer for VerseServer {
             ws_symbols.insert(uri.clone(), symbols);
         }
 
+        self.publish_diagnostics(uri.clone(), &text).await;
+
         let mut docs = self.documents.write().await;
         let doc = Document::new(params.text_document.version, text);
         docs.insert(uri, doc);
@@ -94,10 +101,13 @@ impl LanguageServer for VerseServer {
                     doc.content = change.text;
                 }
             }
-            let symbols = parse_verse_symbols(&doc.content);
+            let content = doc.content.clone();
+            let symbols = parse_verse_symbols(&content);
             drop(docs);
             let mut ws_symbols = self.workspace_symbols.write().await;
-            ws_symbols.insert(uri, symbols);
+            ws_symbols.insert(uri.clone(), symbols);
+            drop(ws_symbols);
+            self.publish_diagnostics(uri, &content).await;
         }
     }
 
@@ -141,6 +151,10 @@ impl LanguageServer for VerseServer {
 
     async fn completion_resolve(&self, params: CompletionItem) -> Result<CompletionItem> {
         self.handle_completion_resolve(params).await
+    }
+
+    async fn signature_help(&self, params: SignatureHelpParams) -> Result<Option<SignatureHelp>> {
+        self.handle_signature_help(params).await
     }
 }
 

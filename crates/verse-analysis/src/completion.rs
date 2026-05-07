@@ -68,6 +68,174 @@ pub fn complete_module_path(db: &SymbolDb, partial: &str) -> Vec<CompletionItem>
     items
 }
 
+pub fn complete_keywords(prefix: &str) -> Vec<CompletionItem> {
+    const KEYWORDS: &[(&str, &str)] = &[
+        ("if", "Conditional expression"),
+        ("else", "Else branch"),
+        ("for", "For loop — iterates over a collection"),
+        ("loop", "Infinite loop — breaks with break"),
+        ("var", "Mutable variable declaration"),
+        ("set", "Assign to a mutable variable"),
+        ("return", "Return from function"),
+        ("break", "Break out of a loop"),
+        ("block", "Structured concurrency block"),
+        ("spawn", "Spawn a concurrent task"),
+        ("sync", "Wait for all concurrent tasks"),
+        ("race", "Wait for first concurrent task"),
+        ("rush", "Run tasks, cancel losers"),
+        ("branch", "Branch concurrent execution"),
+        ("defer", "Defer execution until scope exit"),
+        ("using", "Import a module path"),
+        ("class", "Define a class"),
+        ("struct", "Define a struct"),
+        ("enum", "Define an enum"),
+        ("interface", "Define an interface"),
+        ("where", "Type constraint clause"),
+        ("case", "Pattern matching case"),
+        ("not", "Logical negation"),
+        ("and", "Logical and"),
+        ("or", "Logical or"),
+        ("true", "Boolean true"),
+        ("false", "Boolean false"),
+        ("self", "Current instance"),
+        ("module", "Module declaration"),
+        ("event", "Event declaration"),
+        ("then", "Then clause"),
+        ("do", "Do expression"),
+        ("override", "Override a parent method"),
+        ("suspend", "Suspend coroutine"),
+        ("decides", "Effect — expression may fail"),
+        ("transacts", "Effect — may read/write with rollback"),
+        ("computes", "Effect — pure, no side effects"),
+        ("converges", "Effect — computes + guaranteed to terminate"),
+        ("reads", "Effect — may read mutable state"),
+        ("writes", "Effect — may write mutable state"),
+        ("allocates", "Effect — may allocate objects"),
+        ("suspends", "Effect — async, may take multiple frames"),
+        ("no_rollback", "Effect — cannot be undone"),
+        ("varies", "Effect — result may vary between calls"),
+        ("native", "Specifier — implemented in C++"),
+        ("abstract", "Specifier — abstract class or method"),
+        ("final", "Specifier — cannot be subclassed/overridden"),
+        ("unique", "Specifier — unique class identity"),
+        ("concrete", "Specifier — must provide all field defaults"),
+        ("public", "Access — accessible everywhere"),
+        ("private", "Access — only within same scope"),
+        ("protected", "Access — same scope + subclasses"),
+        ("internal", "Access — same module only"),
+    ];
+
+    let prefix_lower = prefix.to_lowercase();
+    KEYWORDS
+        .iter()
+        .filter(|(kw, _)| kw.starts_with(&prefix_lower))
+        .map(|(kw, doc)| CompletionItem {
+            label: kw.to_string(),
+            kind: Some(CompletionItemKind::KEYWORD),
+            detail: Some("keyword".to_string()),
+            documentation: Some(doc.to_string()),
+        })
+        .collect()
+}
+
+pub fn complete_builtin_types(prefix: &str) -> Vec<CompletionItem> {
+    const TYPES: &[(&str, &str)] = &[
+        ("int", "Integer type"),
+        ("float", "Floating-point type"),
+        ("string", "String type"),
+        ("char8", "8-bit character type"),
+        ("logic", "Boolean logic type (true/false)"),
+        ("void", "Void type — no value"),
+        ("any", "Any type — top of the type hierarchy"),
+        ("comparable", "Comparable type — supports ordering"),
+        ("type", "Type metatype"),
+        ("tuple", "Tuple type"),
+        ("array", "Array container type"),
+        ("map", "Map / dictionary container type"),
+        ("option", "Optional value (?type)"),
+        ("generator", "Generator coroutine type"),
+        ("locale", "Locale type for internationalization"),
+        ("message", "Localizable message type"),
+        ("subtype", "Subtype constraint"),
+    ];
+
+    let prefix_lower = prefix.to_lowercase();
+    TYPES
+        .iter()
+        .filter(|(name, _)| name.starts_with(&prefix_lower))
+        .map(|(name, doc)| CompletionItem {
+            label: name.to_string(),
+            kind: Some(CompletionItemKind::STRUCT),
+            detail: Some("built-in type".to_string()),
+            documentation: Some(doc.to_string()),
+        })
+        .collect()
+}
+
+pub fn complete_snippets(prefix: &str) -> Vec<CompletionItem> {
+    const SNIPPETS: &[(&str, &str, &str)] = &[
+        ("if-then", "if (Condition):\n    # body", "If-then block"),
+        (
+            "if-else",
+            "if (Condition):\n    # then\nelse:\n    # else",
+            "If-else block",
+        ),
+        (
+            "for-loop",
+            "for (Item : Collection):\n    # body",
+            "For loop over collection",
+        ),
+        (
+            "class-def",
+            "my_class := class:\n    # fields and methods",
+            "Class definition",
+        ),
+        (
+            "device-class",
+            "my_device := class(creative_device):\n    @editable\n    MyProp : type = default",
+            "UEFN Creative device class",
+        ),
+        (
+            "on-begin",
+            "OnBegin<override>()<suspends>:void =\n    # startup logic",
+            "OnBegin lifecycle override",
+        ),
+        (
+            "on-end",
+            "OnEnd<override>():void =\n    # cleanup logic",
+            "OnEnd lifecycle override",
+        ),
+        (
+            "subscribe",
+            "EventSource.Subscribe(handler)",
+            "Subscribe to an event",
+        ),
+        (
+            "spawn-task",
+            "spawn:\n    # async task",
+            "Spawn an async concurrent task",
+        ),
+        ("using-block", "using {/Path/To/Module}", "Import a module"),
+        (
+            "editable-prop",
+            "@editable\nMyProp : type = default",
+            "Editable property for UEFN",
+        ),
+    ];
+
+    let prefix_lower = prefix.to_lowercase();
+    SNIPPETS
+        .iter()
+        .filter(|(name, _, _)| name.starts_with(&prefix_lower))
+        .map(|(name, body, doc)| CompletionItem {
+            label: name.to_string(),
+            kind: Some(CompletionItemKind::SNIPPET),
+            detail: Some(body.to_string()),
+            documentation: Some(doc.to_string()),
+        })
+        .collect()
+}
+
 pub fn guess_type(identifier: &str) -> Option<String> {
     match identifier {
         "Player" | "player" => Some("player".to_string()),
